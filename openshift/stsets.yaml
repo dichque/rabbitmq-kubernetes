@@ -1,0 +1,112 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: gpm-poc
+spec:
+  serviceName: rabbitmq
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      serviceAccountName: rabbitmq
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        capabilities: {}
+        #privileged: false
+        runAsUser: 999
+      containers:
+      - name: rabbitmq-k8s
+        image: containers.cisco.com/jaganaga/rabbitmq:alpine
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/rabbitmq
+          - name: cert-volume
+            mountPath: /etc/certs
+          - name: mnesia
+            mountPath: /var/lib/rabbitmq
+        ports:
+          - name: http
+            protocol: TCP
+            containerPort: 15672
+          - name: amqp
+            protocol: TCP
+            containerPort: 5672
+        livenessProbe:
+          exec:
+            command: ["rabbitmqctl", "status"]
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command: ["rabbitmqctl", "status"]
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+        imagePullPolicy: Always
+        env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MY_POD_SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          - name: RABBITMQ_USE_LONGNAME
+            value: "true"
+          - name: RABBITMQ_NODENAME
+            value: "rabbit@$(HOSTNAME).rabbitmq.$(NAMESPACE).svc.cluster.local"
+          - name: K8S_SERVICE_NAME
+            value: "rabbitmq"
+          - name: RABBITMQ_ERLANG_COOKIE
+            value: "yummycookieees"
+          - name: K8S_HOSTNAME_SUFFIX
+            value: ".rabbitmq.$(NAMESPACE).svc.cluster.local"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: rabbitmq-config
+            items:
+            - key: rabbitmq.conf
+              path: rabbitmq.conf
+            - key: enabled_plugins
+              path: enabled_plugins
+        - name: cert-volume
+          configMap:
+            name: certs
+            items:
+            - key: cacert.pem
+              path: cacert.pem
+            - key: cert.pem
+              path: cert.pem
+            - key: key.pem
+              path: key.pem
+      resources:
+        requests:
+          cpu: 0.5
+          memory: 1Gi
+          storage: 500Mi
+        limits:
+          memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: mnesia
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 500Mi

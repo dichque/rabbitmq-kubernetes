@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: gpm-poc
+---
+kind: Role
+apiVersion: v1
+metadata:
+  name: endpoint-reader
+  namespace: gpm-poc
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get"]
+---
+kind: RoleBinding
+apiVersion: v1
+metadata:
+  name: endpoint-reader
+  namespace: gpm-poc
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq
+roleRef:
+  apiGroup:
+  kind: Role
+  name: endpoint-reader
+  namespace: gpm-poc
