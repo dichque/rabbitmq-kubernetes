@@ -1,5 +1,5 @@
 ## Project: RabbitMQ on Platform 3 <br>
-Maintained by: [Jagadish Nagarajaiah](jaganaga@cisco.com])
+Maintained by: [Jagadish Nagarajaiah](jagadish.nagarajaiah@gmail.com])
 
 This repository contains artifacts to offer RabbitMQ messaging service on platform 3
 
